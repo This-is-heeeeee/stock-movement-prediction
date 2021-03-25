@@ -1,0 +1,13 @@
+353810_training-0,0
+353810_training-1,1
+353810_training-2,1
+353810_training-3,1
+353810_training-4,0
+353810_training-5,0
+353810_training-6,0
+353810_training-7,1
+353810_training-8,0
+353810_training-9,0
+353810_training-10,0
+353810_training-11,0
+353810_training-12,1
