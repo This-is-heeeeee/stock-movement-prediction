@@ -14,14 +14,16 @@ def main() :
     createLabel(args.type, args.seq_len)
 
 def createLabel(type, seq_len) :
-    if not os.path.isdir("labels"):
-        os.mkdir("labels")
+    if not os.path.exists("Labels") :
+        os.mkdir("Labels")
+    if not os.path.exists("labels/{}".format(type)):
+        os.mkdir("labels/{}".format(type))
     print("Creating Label...")
 
     for root, dirs, files in os.walk("stockdatas") :
         for file in files :
             if type in file :
-                removeOutput("{}/{}_label_{}.txt".format("labels",file[:-4],seq_len))
+                removeOutput("labels/{}/{}_label_{}.txt".format(type,file[:-4],seq_len))
                 df = pd.read_csv("{}/{}".format(root, file), parse_dates=True, index_col=0)
                 df.fillna(0)
 
@@ -34,13 +36,15 @@ def createLabel(type, seq_len) :
 
                     if len(c) == int(seq_len) + 1 :
                         starting = c["Close"].iloc[-2]
+                        #endvalue = c["High"].iloc[-1]
                         endvalue = c["Close"].iloc[-1]
 
-                        if endvalue > starting :
+                        #if endvalue >= starting * 1.05 :
+                        if endvalue > starting:
                             label = 1
                         else :
                             label = 0
-                        with open("{}/{}_label_{}.txt".format("labels",file[:-4],seq_len),'a') as the_file :
+                        with open("Labels/{}/{}_label_{}.txt".format(type,file[:-4],seq_len),'a') as the_file :
                             the_file.write("{}-{},{}".format(file[:-4], i, label))
                             the_file.write("\n")
 

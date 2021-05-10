@@ -7,13 +7,20 @@ import pandas as pd
 import numpy as np
 import datetime
 import time
+import argparse
 
 class kiwoomAPI(QAxWidget) :
-    def __init__(self):
+    windows_length = 0
+    work_type = ''
+    def __init__(self, windows_length, work_type):
         super().__init__()
         self.setControl("KHOPENAPI.KHOpenAPICtrl.1")
 
         self._set_signal_slots()
+
+        self.windows_length = windows_length
+        self.work_type = work_type
+        print(self.windows_length, self.work_type)
 
     def _set_signal_slots(self):
         self.OnEventConnect.connect(self._event_connect)
@@ -50,16 +57,21 @@ class kiwoomAPI(QAxWidget) :
 
         data = self._opt10081(trCode, recordName)
 
-        train_size = int(2*len(data)/3)
-        _index = data.index[train_size]
-        data_training = data.loc[:_index,:]
-        data_testing = data.loc[_index:,:]
+        #train_size = int(2*len(data)/3)
+        #_index = data.index[train_size]
 
-        fname_training = 'stockdatas/{}_training.csv'.format(self.stock_code)
-        fname_testing = 'stockdatas/{}_testing.csv'.format(self.stock_code)
+        fname = 'stockdatas/{}_{}.csv'.format(self.stock_code, self.work_type)
+        print(self.work_type)
+        if self.work_type == "training":
+            data_training = data
 
-        data_training.to_csv(fname_training)
-        data_testing.to_csv(fname_testing)
+            data_training.to_csv(fname)
+
+        elif self.work_type == "testing":
+            if len(data) >= self.windows_length :
+                _index = data.index[len(data) - self.windows_length -1]
+                data_testing = data.loc[_index:, :]
+                data_testing.to_csv(fname)
 
         self.conditionLoop.exit()
 
@@ -137,6 +149,8 @@ class kiwoomAPI(QAxWidget) :
     def _opt10081(self, trCode, rqName):
         data = np.array(self.getCommdataEx(trCode, rqName))
         df = pd.DataFrame(data[:, 1:8], columns=['Close', 'Volume', 'Volume2', 'Date', 'Open', 'High', 'Low'])
+        del df['Volume2']
+        df = df.iloc[::-1].reset_index(drop=True)
         df.set_index('Date', inplace= True)
         df.astype(float)
         return df
@@ -148,16 +162,25 @@ class kiwoomAPI(QAxWidget) :
         return self.tr_condition_data
 
 def main() :
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-l', '--windows_length', help='num of sequence length', type=int, required=True)
+    parser.add_argument('-t', '--work_type', help='the type of data', type=str, required=True)
+
+    args = parser.parse_args()
+
     if not os.path.isdir("stockdatas"):
         os.mkdir("stockdatas")
 
     app = QApplication(sys.argv)
-    kiwoom = kiwoomAPI()
+    kiwoom = kiwoomAPI(args.windows_length, args.work_type)
     kiwoom.commConnect()
     codes = kiwoom.get_codes()
-    print(codes)
 
     date = datetime.datetime.today()
+
+    if args.work_type == "training":
+        date = date - datetime.timedelta(1)
+
     date = date.strftime('%Y%m%d')
 
     for code in codes:
